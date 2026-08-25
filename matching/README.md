@@ -1,32 +1,99 @@
-# Matching
+# Product Matching
 
-- Dépôt associé : `../matching-vapalape`
-- Rôle : calculer les correspondances entre les données disponibles et les critères du produit.
+Le composant de matching rattache les offres collectées dans les boutiques (`product_stores`) au bon produit canonique (`products`). Il rend possible la comparaison du prix d'un même produit entre plusieurs vendeurs, malgré les différences de libellés, d'attributs et de formats.
 
-## Responsabilités
+**Code source local :** `../matching-vapalape`
 
-Le composant de matching isole la logique métier qui permet de classer, rapprocher ou sélectionner les résultats pertinents. Il a vocation à :
+L'objectif est double : conserver une **haute précision** pour ne pas fusionner deux produits différents, tout en obtenant un **bon rappel** lorsque deux boutiques décrivent le même produit de manière différente.
 
-- recevoir des données normalisées ;
-- interpréter les critères utiles au rapprochement ;
-- calculer les correspondances ;
-- produire des résultats exploitables par le backend ;
-- faire évoluer les règles de sélection sans coupler cette logique à l'interface.
+## Stack technique
+
+| Couche | Technologie |
+| --- | --- |
+| Langage | Python 3.11+ |
+| Gestion d'environnement | uv |
+| Accès base | PostgreSQL via `psycopg2` |
+| Blocking | `pg_trgm` et empreintes calculées |
+| Scoring lexical | RapidFuzz, token set ratio et Jaro-Winkler |
+| Embeddings | sentence-transformers, modèle multilingue MiniLM |
+| Recherche vectorielle | pgvector |
+| UI de revue | FastAPI, Uvicorn, Jinja2, HTMX |
+| Option ML | Splink, DuckDB et pandas |
+| Tests | pytest |
+| Packaging | setuptools et `pyproject.toml` |
+| Exécution | Docker, docker-compose, just |
+
+## Pipeline de rapprochement
 
 ```mermaid
 flowchart LR
-    P[Pipeline\ndonnées normalisées] --> M[Moteur de matching]
-    C[Critères utilisateur] --> M
-    M --> R[Résultats classés ou filtrés]
-    R --> A[Backend API]
+    O[Offres boutiques] --> N[Normalisation]
+    N --> F[match_offer_features]
+    F --> B[Blocking\nmarque + trigramme + empreinte]
+    B --> S[Scoring fuzzy\n+ règles discriminantes]
+    F --> E[Embeddings\npgvector, rappel sémantique]
+    E --> S
+    S --> D{Décision}
+    D -->|score élevé| AM[auto_match]
+    D -->|incertain| R[review humaine]
+    D -->|score faible| AR[auto_reject]
+    R --> UI[UI FastAPI de revue]
+    AM --> C[match_candidates]
+    AR --> C
 ```
 
-## Intérêt dans l'architecture
+Le traitement est structuré en étapes :
 
-Le matching est un module métier indépendant des détails de collecte et de présentation. Le pipeline se concentre sur la qualité et la forme des données, tandis que le frontend reçoit des résultats déjà interprétés par le backend.
+1. **Normalisation** : nettoyage du texte, translittération, tokens, marque, EAN, modèle, volume, nicotine et autres attributs.
+2. **Blocking** : réduction du nombre de paires candidates par marque, similarité trigramme, catégories compatibles et empreinte.
+3. **Scoring** : combinaison de RapidFuzz, trigrammes et attributs discriminants.
+4. **Embeddings optionnels** : rappel sémantique pour des synonymes comme « batterie » et « accu » ; un embedding seul ne déclenche pas un `auto_match`.
+5. **Décision** : séparation entre `auto_match`, `review` et `auto_reject`.
+6. **Application** : écriture des décisions validées dans le modèle canonique et suivi des versions de traitement.
 
-Cette frontière rend les règles de matching testables et permet d'envisager plusieurs modes d'exécution sans modifier l'interface utilisateur.
+Une divergence de volume, nicotine, puissance, modèle, marque ou fingerprint peut plafonner fortement le score même si les noms sont proches. Cette règle protège contre les fusions abusives et les ponts transitifs entre produits différents.
 
-## Lire le code
+## Commandes principales
 
-Pour les règles de calcul, les modèles d'entrée et de sortie et les tests associés, consulter le dépôt [`matching-vapalape`](../matching-vapalape) lorsqu'il est disponible dans l'organisation locale.
+```bash
+uv sync
+uv run --extra dev python -m pytest
+
+uv run --extra db python -m vapalape_matching.pipeline.normalize_offers --all
+uv run --extra db python -m vapalape_matching.pipeline.match_candidates --cross-store
+uv run --extra db --extra embeddings \
+  python -m vapalape_matching.pipeline.embed_offers --all
+```
+
+Les runners acceptent `--limit`, `--dry-run` et `--help`. Les extras sont séparés pour éviter d'installer les dépendances lourdes lorsqu'un traitement ne nécessite pas la base ou les embeddings.
+
+## Revue humaine et règles
+
+Le package `vapalape_matching.ui` fournit une interface FastAPI pour :
+
+- parcourir les candidats triés par score avec pagination par curseur ;
+- marquer une paire comme match ou non-match ;
+- annuler la dernière décision ;
+- consulter les statistiques de la file de revue ;
+- créer et appliquer des règles de revue ciblées.
+
+Les décisions humaines sont conservées dans la base et réutilisables lors des traitements incrémentaux. Le code gère également la réconciliation des marques, attributs, EAN, catégories et produits dupliqués.
+
+## Schéma et intégration
+
+Les tables `match_*` sont hébergées dans la base du backend Rails et utilisent PostgreSQL, `pg_trgm` et pgvector. Les migrations et le schéma de référence doivent être appliqués avant l'exécution du pipeline.
+
+Le matching est donc découplé du backend au niveau du code, mais partage son modèle de données afin que les résultats deviennent directement consultables par l'API.
+
+## Docker et exploitation
+
+```bash
+docker build -t matching-vapalape .
+docker run --rm --env-file .env matching-vapalape
+
+docker compose run --rm matching
+```
+
+L'image de production embarque les extras base et embeddings ainsi que le modèle d'embeddings pré-téléchargé. Le runtime n'a donc pas besoin d'accéder à Hugging Face pour démarrer.
+
+Les procédures d'exploitation sont décrites dans [`docs/deployment.md`](../matching-vapalape/docs/deployment.md), [`docs/production-readiness.md`](../matching-vapalape/docs/production-readiness.md) et [`docs/runbook.md`](../matching-vapalape/docs/runbook.md).
