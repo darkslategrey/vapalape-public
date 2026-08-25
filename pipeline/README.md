@@ -1,5 +1,7 @@
 # Pipeline d'ingestion
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 `VapePipeline` est le service Elixir qui transforme les exports JSONL du scraper en messages NATS puis en écritures PostgreSQL. Il fournit une ingestion asynchrone, supervisée et rejouable pour les magasins, marques, catégories, produits, variantes, prix, historiques et logs de scraping.
 
 **Code source local :** `../pipeline-vapalape`

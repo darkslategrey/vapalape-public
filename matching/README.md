@@ -1,5 +1,7 @@
 # Product Matching
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 Le composant de matching rattache les offres collectées dans les boutiques (`product_stores`) au bon produit canonique (`products`). Il rend possible la comparaison du prix d'un même produit entre plusieurs vendeurs, malgré les différences de libellés, d'attributs et de formats.
 
 **Code source local :** `../matching-vapalape`

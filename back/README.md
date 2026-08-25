@@ -1,5 +1,7 @@
 # Backend API
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 L'API Vapalape est le backend métier du comparateur de prix. Elle expose les produits canoniques, les offres des boutiques, les prix et leurs historiques, les catégories, les marques et les fonctionnalités de compte.
 
 **Code source local :** `../api-vapalape`

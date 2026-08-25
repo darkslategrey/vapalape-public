@@ -1,5 +1,7 @@
 # Frontend Web
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 Le frontend Vapalape est l'application web du comparateur. Il présente le catalogue, les résultats de recherche, les comparaisons de prix, les historiques et les contenus éditoriaux, tout en intégrant les parcours de compte et l'assistant.
 
 **Code source local :** `../front-vapalape`

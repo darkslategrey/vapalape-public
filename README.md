@@ -1,5 +1,7 @@
 # Vapalape
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 Vapalape est un comparateur de prix dédié aux produits de la vape. Le système collecte les catalogues de boutiques en ligne, rapproche les offres qui désignent un même produit, historise les prix puis expose ces données au travers d'une API et d'une interface web.
 
 Ce repository est la vitrine technique publique du projet. Le code est organisé en dépôts spécialisés, documentés depuis les dossiers [`back`](back/README.md), [`front`](front/README.md), [`infra`](infra/README.md), [`matching`](matching/README.md), [`pipeline`](pipeline/README.md) et [`scraper`](scraper/README.md).

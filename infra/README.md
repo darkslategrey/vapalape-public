@@ -1,5 +1,7 @@
 # Infrastructure VPS
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 L'infrastructure automatise l'installation et l'exploitation de Vapalape sur un VPS. Le playbook configure le socle système, Docker, PostgreSQL, les runtimes applicatifs, le reverse proxy et les processus de scraping.
 
 **Code source local :** `../ansible-vapalape`

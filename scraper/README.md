@@ -1,5 +1,7 @@
 # Scraper multi-boutiques
 
+[Version française](README.md) | **English version**: [README.en.md](README.en.md)
+
 Le scraper collecte les catalogues de boutiques françaises de vape et produit les données utilisées par le pipeline d'ingestion. Chaque boutique possède généralement trois spiders spécialisés : catégories, listes et fiches produit.
 
 **Code source local :** `../scrapy-vapalape`
